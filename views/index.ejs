@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Real-time Seat Map (EJS & Axios)</title>
+  <!-- Google Fonts: Inter -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Axios CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          },
+        },
+      },
+    }
+  </script>
+  <!-- Custom Neon Glow Styles -->
+  <style>
+    body {
+      background-color: #0b0f19;
+    }
+    .glass-card {
+      background: rgba(17, 24, 39, 0.7);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .neon-glow-green {
+      box-shadow: 0 0 10px rgba(34, 197, 94, 0.4);
+    }
+    .neon-glow-amber {
+      box-shadow: 0 0 10px rgba(245, 158, 11, 0.5);
+    }
+    .neon-glow-red {
+      box-shadow: 0 0 10px rgba(239, 68, 68, 0.4);
+    }
+  </style>
+</head>
+<body class="text-gray-100 min-h-screen flex flex-col font-sans">
+
+  <!-- Header -->
+  <header class="border-b border-gray-800 py-4 px-6 bg-gray-900/50 backdrop-blur-md">
+    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
+      <div class="flex items-center gap-3">
+        <div class="h-3 w-3 rounded-full bg-green-500 animate-ping"></div>
+        <h1 class="text-xl font-bold tracking-tight bg-gradient-to-r from-teal-400 to-emerald-500 bg-clip-text text-transparent">
+          REAL-TIME SEAT HUB (EJS & AXIOS)
+        </h1>
+        <span class="text-xs bg-gray-800 text-gray-400 px-2 py-0.5 rounded-full border border-gray-700">SSR Enabled</span>
+      </div>
+      
+      <!-- Controls -->
+      <div class="flex items-center gap-3">
+        <label for="ticket-id" class="text-sm text-gray-400">Ticket ID to view:</label>
+        <input type="number" id="ticket-id" value="<%= ticketId %>" min="1" 
+               class="w-16 bg-gray-800 border border-gray-700 rounded px-2 py-1 text-center font-medium focus:outline-none focus:border-emerald-500 text-white">
+        <button id="btn-load" class="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white text-sm font-semibold px-4 py-1.5 rounded transition shadow-lg shadow-emerald-950/30">
+          Load Seat Map
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
+    
+    <!-- Left Column: Seat Map Grid -->
+    <section class="lg:col-span-2 flex flex-col gap-4">
+      <div class="glass-card p-6 rounded-2xl flex-1 flex flex-col justify-between">
+        <div>
+          <div class="flex justify-between items-center mb-6 border-b border-gray-800 pb-4">
+            <h2 class="text-lg font-semibold text-white">Seat Map (Server-Side Rendered)</h2>
+            <!-- Legend -->
+            <div class="flex gap-4 text-xs">
+              <div class="flex items-center gap-1.5">
+                <span class="h-3 w-3 rounded bg-emerald-500/20 border border-emerald-500/50 block"></span>
+                <span class="text-gray-400">Available</span>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <span class="h-3 w-3 rounded bg-amber-500/20 border border-amber-500/50 block animate-pulse"></span>
+                <span class="text-gray-400">Reserved (5m)</span>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <span class="h-3 w-3 rounded bg-red-500/20 border border-red-500/50 block"></span>
+                <span class="text-gray-400">Booked</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Seat Grid (Server-Side Rendered by EJS) -->
+          <div id="seat-grid" class="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-10 gap-3">
+            <% seats.forEach(function(seat) { %>
+              <% 
+                let statusClass = '';
+                if (seat.status === 'available') {
+                  statusClass = 'bg-emerald-950/20 border-emerald-800/40 text-emerald-400 hover:bg-emerald-900/30 hover:border-emerald-500 hover:text-white cursor-pointer';
+                } else if (seat.status === 'reserved') {
+                  statusClass = 'bg-amber-500/20 border-amber-500 text-amber-400 animate-pulse cursor-pointer neon-glow-amber';
+                } else if (seat.status === 'booked') {
+                  statusClass = 'bg-red-950/30 border-red-900/40 text-red-500 cursor-not-allowed opacity-50';
+                }
+              %>
+              <button 
+                id="seat-<%= seat.seatNumber %>" 
+                data-seat-number="<%= seat.seatNumber %>"
+                data-status="<%= seat.status %>"
+                class="p-3 text-xs font-bold rounded-lg border transition duration-200 focus:outline-none flex flex-col items-center justify-center min-h-[50px] <%= statusClass %>"
+                onclick="selectSeat(this)"
+              >
+                <%= seat.seatNumber %>
+              </button>
+            <% }); %>
+          </div>
+        </div>
+
+        <!-- Stage/Screen indicator -->
+        <div class="mt-12 text-center">
+          <div class="w-2/3 mx-auto h-2 bg-gradient-to-r from-teal-500/30 via-emerald-400/50 to-teal-500/30 rounded-full blur-[1px]"></div>
+          <span class="text-xs text-gray-500 tracking-widest uppercase mt-2 block">Screen / Front Stage / Tour Bus Entrance</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Right Column: Actions & Live Logs -->
+    <section class="flex flex-col gap-6">
+      
+      <!-- Interactive Reservation Form -->
+      <div class="glass-card p-6 rounded-2xl">
+        <h3 class="text-base font-semibold text-white mb-4 flex items-center gap-2">
+          <span>Quick Seat Reservation</span>
+        </h3>
+        <div class="space-y-4">
+          <div>
+            <label class="block text-xs text-gray-400 mb-1">Selected Seat</label>
+            <input type="text" id="selected-seat" placeholder="Click a seat on the map..." readonly
+                   class="w-full bg-gray-900 border border-gray-800 rounded-lg px-3 py-2 text-sm font-semibold text-emerald-400 focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-xs text-gray-400 mb-1">Agent/Collaborator User ID (e.g., 22)</label>
+            <input type="number" id="user-id" value="22"
+                   class="w-full bg-gray-900 border border-gray-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500">
+          </div>
+          <button id="btn-reserve" disabled
+                  class="w-full bg-gray-800 text-gray-500 font-semibold py-2 rounded-lg cursor-not-allowed text-sm transition duration-200">
+            Send Reservation Request (Reserve)
+          </button>
+        </div>
+      </div>
+
+      <!-- Live Terminal logs -->
+      <div class="glass-card p-6 rounded-2xl flex-1 flex flex-col min-h-[300px]">
+        <div class="flex justify-between items-center mb-3">
+          <h3 class="text-sm font-semibold text-white tracking-wide">Terminal Live Logs</h3>
+          <button id="btn-clear-logs" class="text-xs text-gray-500 hover:text-gray-300">Clear</button>
+        </div>
+        <div id="log-console" class="flex-1 bg-gray-950/80 rounded-xl p-3 border border-gray-900 font-mono text-[11px] leading-relaxed text-gray-400 overflow-y-auto max-h-[320px]">
+          <div class="text-gray-600">[SYSTEM] Initiating WebSockets connection...</div>
+        </div>
+      </div>
+
+    </section>
+  </main>
+
+  <!-- Socket.io client script -->
+  <script src="/socket.io/socket.io.js"></script>
+  <!-- Link external JavaScript file -->
+  <script src="/js/seatmap.js"></script>
+</body>
+</html>

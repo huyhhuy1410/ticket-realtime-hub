@@ -1,0 +1,21 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Seat {
+  id          Int      @id @default(autoincrement())
+  ticketId    Int      // ID của vé du lịch tương ứng bên Laravel Core
+  seatNumber  String   // Mã ghế/chỗ ngồi (ví dụ: A01, A02, B05...)
+  status      String   @default("available") // Trạng thái: available, reserved, booked
+  reservedBy  Int?     // ID User (CTV/Đại lý) đang giữ ghế
+  reservedAt  DateTime? // Thời điểm bắt đầu giữ ghế
+  updatedAt   DateTime @updatedAt
+
+  @@unique([ticketId, seatNumber]) // Không thể trùng số ghế trên cùng một loại vé
+  @@map("seats")
+}

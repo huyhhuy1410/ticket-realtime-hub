@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: ticket_realtime_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: ticket_realtime
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis_node:
+    image: redis:7-alpine
+    container_name: ticket_realtime_redis
+    restart: always
+    ports:
+      - "6380:6379" # Run on 6380 to avoid conflicts with Laravel's Redis (6379)
+    volumes:
+      - redis_data:/data
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ticket_realtime_app
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - DATABASE_URL=postgresql://postgres:password@postgres:5432/ticket_realtime?schema=public
+      - REDIS_URL=redis://redis_node:6379
+      - NODE_ENV=development
+      - LARAVEL_CORE_URL=http://host.docker.internal
+    volumes:
+      - .:/usr/src/app
+      - /usr/src/app/node_modules
+    depends_on:
+      - postgres
+      - redis_node
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+volumes:
+  postgres_data:
+  redis_data:
