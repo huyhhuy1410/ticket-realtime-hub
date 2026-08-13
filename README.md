@@ -23,16 +23,16 @@ When thousands of users view the same bus/train/flight seat map simultaneously, 
 
 ```mermaid
 flowchart TD
-    Client1[Client A: Interactive Seatmap UI] -->|1. Hold Request| API[Express API /api/seats/reserve]
-    Client2[Client B: Interactive Seatmap UI] -->|Concurrent Hold| API
+    Client1["Client A: Interactive Seatmap UI"] -->|1. Hold Request| API["Express API: POST /api/seats/reserve"]
+    Client2["Client B: Interactive Seatmap UI"] -->|Concurrent Hold| API
     
-    API -->|2. SET seat_lock:1:A05 EX 300 NX| Redis[(Redis Lock Engine)]
+    API -->|2. SET seat_lock:1:A05 EX 300 NX| Redis[("Redis Lock Engine")]
     
-    Redis -->>|Lock Success| API
-    Redis -->>|Lock Denied| API
+    Redis -.->|Lock Success| API
+    Redis -.->|Lock Denied| API
     
-    API -->|3. Update Status: RESERVED| Postgres[(PostgreSQL DB / Prisma)]
-    API -->|4. Broadcast 'seat_updated'| Socket[Socket.io WebSockets Hub]
+    API -->|3. Update Status: RESERVED| Postgres[("PostgreSQL DB / Prisma")]
+    API -->|4. Broadcast seat_updated| Socket["Socket.io WebSockets Hub"]
     
     Socket -->|Realtime Update| Client1
     Socket -->|Realtime Update| Client2
