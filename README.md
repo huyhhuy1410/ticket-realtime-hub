@@ -123,6 +123,12 @@ ticket-realtime-hub/
 
 ---
 
+## 🤝 Contributing
+
+Contributions, bug reports, and feature proposals are welcome! Feel free to open an issue or submit a Pull Request.
+
+---
+
 ## 📄 License & Provenance Notice
 
 This repository is an **independent technical project** created by Vo Quang Huy for technical demonstration. It contains no proprietary code, private client data, or credentials from third-party employers.
